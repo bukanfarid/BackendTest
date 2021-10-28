@@ -25,16 +25,30 @@ namespace Backend.Controllers
 
         // GET: api/Appointments
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Appointment>>> GetAppointments([FromQuery] PaginationFilter filter)
+        public async Task<ActionResult<IEnumerable<Appointment>>> GetAppointments([FromQuery] AppointmentFilter filter)
         {
-            //return await _context.Appointments.ToListAsync();
+            var data = _context.Appointments
+               .Join(_context.Pets,
+               app => app.Pet.PetId,
+               pt => pt.PetId,
+               (app, pt) => new Appointment
+               {
+                   AppointmentId = app.AppointmentId,
+                   AppointmentDateTime = app.AppointmentDateTime,
+                   DateDeleted = app.DateDeleted,
+                   Pet = pt,
+                   Notes = app.Notes
+               });
+
             var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
-            var pagedData = await _context.Appointments
-                .Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
+            var pagedData = await data.Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
                 .Take(validFilter.PageSize)
                 .ToListAsync();
-            var totalRecords = await _context.Appointments.CountAsync();
-            var response = await _context.Appointments.ToListAsync();
+
+            var totalRecords = await data.CountAsync();
+            var response = await data.ToListAsync();
+
+            //return joinData;
             return Ok(new PagedResponse<List<Appointment>>(pagedData, validFilter.PageNumber, validFilter.PageSize));
         }
 

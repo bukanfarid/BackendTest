@@ -27,14 +27,38 @@ namespace Backend.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Pet>>> GetPets([FromQuery] PaginationFilter filter)
         {
-            // return await _context.Pets.ToListAsync();
+            /* return await _context.Pets.ToListAsync();
             var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
             var pagedData = await _context.Pets
                 .Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
                 .Take(validFilter.PageSize)
                 .ToListAsync();
             var totalRecords = await _context.Pets.CountAsync();
-            var response = await _context.Pets.ToListAsync();
+            var response = await _context.Pets.ToListAsync();*/
+
+            var data = _context.Pets
+              .Join(_context.Owners,
+              app => app.Owner.OwnerId,
+              pt => pt.OwnerId,
+              (app, pt) => new Pet
+              {
+                  PetId = app.PetId,
+                  Name = app.Name,
+                  Age = app.Age,
+                  Breed = app.Breed,
+                  ImageBase64 = app.ImageBase64,
+                  Owner = app.Owner,
+                  Animal = app.Animal,
+                  Notes = app.Notes
+              });
+
+            var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
+            var pagedData = await data.Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
+                .Take(validFilter.PageSize)
+                .ToListAsync();
+
+            var totalRecords = await data.CountAsync();
+            var response = await data.ToListAsync();
             return Ok(new PagedResponse<List<Pet>>(pagedData, validFilter.PageNumber, validFilter.PageSize));
         }
 

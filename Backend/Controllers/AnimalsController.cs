@@ -33,6 +33,7 @@ namespace Backend.Controllers
                 .Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
                 .Take(validFilter.PageSize)
                 .ToListAsync();
+             
             var totalRecords = await _context.Animals.CountAsync();
             var response = await _context.Animals.ToListAsync();
             return Ok(new PagedResponse<List<Animal>>(pagedData, validFilter.PageNumber, validFilter.PageSize));

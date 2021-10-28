@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 
 namespace Backend
 {
@@ -28,8 +29,11 @@ namespace Backend
         public void ConfigureServices(IServiceCollection services)
         {
 
-            services.AddControllers();
-           // services.AddDbContext<VetContext>(opt => opt.UseInMemoryDatabase("NetVeterinarian"));
+            services.AddControllers().AddNewtonsoftJson(options =>
+            {
+                options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
+            });
+            // services.AddDbContext<VetContext>(opt => opt.UseInMemoryDatabase("NetVeterinarian"));
             services.AddDbContext<VetContext>(options =>  options.UseSqlServer(Configuration.GetConnectionString("NetVeterinarian")));
 
             services.AddSwaggerGen(c =>

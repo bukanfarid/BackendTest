@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Backend;
 using Backend.Models;
+using Backend.Filter;
+using Backend.Wrappers;
 
 namespace Backend.Controllers
 {
@@ -23,23 +25,32 @@ namespace Backend.Controllers
 
         // GET: api/Contacts
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Contact>>> GetContacts()
+        public async Task<ActionResult<IEnumerable<Contact>>> GetContacts([FromQuery] PaginationFilter filter)
         {
-            return await _context.Contacts.ToListAsync();
+            // return await _context.Contacts.ToListAsync();
+            var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
+            var pagedData = await _context.Contacts
+                .Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
+                .Take(validFilter.PageSize)
+                .ToListAsync();
+            var totalRecords = await _context.Contacts.CountAsync();
+            var response = await _context.Contacts.ToListAsync();
+            return Ok(new PagedResponse<List<Contact>>(pagedData, validFilter.PageNumber, validFilter.PageSize));
         }
 
         // GET: api/Contacts/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Contact>> GetContact(Guid id)
         {
-            var contact = await _context.Contacts.FindAsync(id);
+            // var contact = await _context.Contacts.FindAsync(id);
+            var contact = await _context.Contacts.Where(a => a.ContactId == id).FirstOrDefaultAsync();
 
             if (contact == null)
             {
                 return NotFound();
             }
 
-            return contact;
+            return Ok(new Response<Contact>(contact));
         }
 
         // PUT: api/Contacts/5

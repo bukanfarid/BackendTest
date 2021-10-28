@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Backend;
 using Backend.Models;
+using Backend.Filter;
+using Backend.Wrappers;
 
 namespace Backend.Controllers
 {
@@ -23,23 +25,31 @@ namespace Backend.Controllers
 
         // GET: api/Owners
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Owner>>> GetOwners()
+        public async Task<ActionResult<IEnumerable<Owner>>> GetOwners([FromQuery] PaginationFilter filter)
         {
-            return await _context.Owners.ToListAsync();
+            var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
+            var pagedData = await _context.Owners
+                .Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
+                .Take(validFilter.PageSize)
+                .ToListAsync();
+            var totalRecords = await _context.Owners.CountAsync();
+            var response = await _context.Owners.ToListAsync();
+          
+            return Ok(new PagedResponse<List<Owner>>(pagedData, validFilter.PageNumber, validFilter.PageSize)); 
         }
 
         // GET: api/Owners/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Owner>> GetOwner(Guid id)
         {
-            var owner = await _context.Owners.FindAsync(id);
+            var owner = await _context.Owners.Where(a => a.OwnerId == id).FirstOrDefaultAsync(); 
 
             if (owner == null)
             {
                 return NotFound();
             }
 
-            return owner;
+            return Ok(new Response<Owner>(owner));
         }
 
         // PUT: api/Owners/5

@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Backend;
 using Backend.Models;
+using Backend.Filter;
+using Backend.Wrappers;
 
 namespace Backend.Controllers
 {
@@ -23,23 +25,32 @@ namespace Backend.Controllers
 
         // GET: api/Appointments
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Appointment>>> GetAppointments()
+        public async Task<ActionResult<IEnumerable<Appointment>>> GetAppointments([FromQuery] PaginationFilter filter)
         {
-            return await _context.Appointments.ToListAsync();
+            //return await _context.Appointments.ToListAsync();
+            var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
+            var pagedData = await _context.Appointments
+                .Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
+                .Take(validFilter.PageSize)
+                .ToListAsync();
+            var totalRecords = await _context.Appointments.CountAsync();
+            var response = await _context.Appointments.ToListAsync();
+            return Ok(new PagedResponse<List<Appointment>>(pagedData, validFilter.PageNumber, validFilter.PageSize));
         }
 
         // GET: api/Appointments/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Appointment>> GetAppointment(Guid id)
         {
-            var appointment = await _context.Appointments.FindAsync(id);
+            //var appointment = await _context.Appointments.FindAsync(id);
+            var appointment = await _context.Appointments.Where(a => a.AppointmentId == id).FirstOrDefaultAsync();
 
             if (appointment == null)
             {
                 return NotFound();
             }
 
-            return appointment;
+            return Ok(new Response<Appointment>(appointment));
         }
 
         // PUT: api/Appointments/5

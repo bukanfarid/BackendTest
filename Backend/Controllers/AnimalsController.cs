@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Backend;
 using Backend.Models;
+using Backend.Filter;
+using Backend.Wrappers;
 
 namespace Backend.Controllers
 {
@@ -23,23 +25,33 @@ namespace Backend.Controllers
 
         // GET: api/Animals
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Animal>>> GetAnimals(int pageNo, int pageSize)
-        { 
-            return await _context.Animals.Skip<Animal>((pageNo-1)*pageSize).Take<Animal>(pageSize).ToListAsync();
+        public async Task<ActionResult<IEnumerable<Animal>>> GetAnimals([FromQuery] PaginationFilter filter)
+        {
+            //return await _context.Animals.Skip<Animal>((pageNo-1)*pageSize).Take<Animal>(pageSize).ToListAsync();
+            var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
+            var pagedData = await _context.Animals
+                .Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
+                .Take(validFilter.PageSize)
+                .ToListAsync();
+            var totalRecords = await _context.Animals.CountAsync();
+            var response = await _context.Animals.ToListAsync();
+            return Ok(new PagedResponse<List<Animal>>(pagedData, validFilter.PageNumber, validFilter.PageSize));
         }
 
         // GET: api/Animals/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Animal>> GetAnimal(Guid id)
         {
-            var animal = await _context.Animals.FindAsync(id);
+            //var animal = await _context.Animals.FindAsync(id);
+            var animal = await _context.Animals.Where(a => a.AnimalId == id).FirstOrDefaultAsync();
 
             if (animal == null)
             {
                 return NotFound();
             }
 
-            return animal;
+            //return animal;
+            return Ok(new Response<Animal>(animal));
         }
 
         // PUT: api/Animals/5

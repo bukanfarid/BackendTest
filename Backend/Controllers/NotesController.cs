@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Backend;
 using Backend.Models;
+using Backend.Wrappers;
+using Backend.Filter;
 
 namespace Backend.Controllers
 {
@@ -23,23 +25,32 @@ namespace Backend.Controllers
 
         // GET: api/Notes
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Note>>> GetNotes()
+        public async Task<ActionResult<IEnumerable<Note>>> GetNotes([FromQuery] PaginationFilter filter)
         {
-            return await _context.Notes.ToListAsync();
+            //return await _context.Notes.ToListAsync();
+            var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
+            var pagedData = await _context.Notes
+                .Skip((validFilter.PageNumber - 1) * validFilter.PageSize)
+                .Take(validFilter.PageSize)
+                .ToListAsync();
+            var totalRecords = await _context.Notes.CountAsync();
+            var response = await _context.Notes.ToListAsync();
+            return Ok(new PagedResponse<List<Note>>(pagedData, validFilter.PageNumber, validFilter.PageSize));
         }
 
         // GET: api/Notes/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Note>> GetNote(Guid id)
         {
-            var note = await _context.Notes.FindAsync(id);
+            // var note = await _context.Notes.FindAsync(id);
+            var note = await _context.Notes.Where(a => a.NoteId == id).FirstOrDefaultAsync();
 
             if (note == null)
             {
                 return NotFound();
             }
 
-            return note;
+            return Ok(new Response<Note>(note));
         }
 
         // PUT: api/Notes/5
